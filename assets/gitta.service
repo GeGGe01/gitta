@@ -1,0 +1,13 @@
+[Unit]
+Description=gitta service (disabled by default)
+After=network.target
+
+[Service]
+Type=simple
+User=gitta
+Group=gitta
+ExecStart=/usr/bin/gitta
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

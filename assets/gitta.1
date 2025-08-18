@@ -1,0 +1,37 @@
+.TH gitta 1 "" "gitta 0.1.0" "User Commands"
+.SH NAME
+gitta \- Make git commit message from bullet list.
+.SH SYNOPSIS
+.B gitta
+[-i INPUT] [-o OUTPUT] [--subject-max N] [--wrap N]
+.SH DESCRIPTION
+Reads a list of bullet points from a file, stdin, or an interactive editor and
+emits a conventional commit message with a concise subject and a wrapped body.
+Lines beginning with '#' are ignored as comments. Bullets may start with '-' or '*'.
+.SH OPTIONS
+.TP
+.B \-V, \-\-version
+Show version.
+.TP
+.B \-i, \-\-input
+Input file. If omitted and stdin is a tty, $EDITOR is opened.
+.TP
+.B \-o, \-\-output
+Output file (default stdout).
+.TP
+.B \-\-subject-max N
+Max length for subject (default 50).
+.TP
+.B \-\-wrap N
+Wrap width for body (default 72).
+.SH EXAMPLES
+Read from file and write to stdout:
+.nf
+  gitta -i bullets.txt
+.fi
+Use editor interactively and save to COMMIT_MSG:
+.nf
+  gitta > COMMIT_MSG
+.fi
+.SH SEE ALSO
+Project homepage: https://gegge01.github.io/gitta

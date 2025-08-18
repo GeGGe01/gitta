@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Simple launcher for the packaged Python module
+export PYTHONPATH="/usr/lib/gitta${PYTHONPATH:+:$PYTHONPATH}"
+exec /usr/bin/env PYTHONPATH=/usr/lib/gitta/ python3 -m gitta "$@"
+

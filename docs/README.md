@@ -44,3 +44,39 @@ project/
 ├── Makefile
 └── LICENSE
 ```
+
+## APT Installation
+
+Stable releases are published to GitHub Pages. Add the repo and key:
+
+1) Import the public key (preferred: keyring path; first-time bootstrap):
+
+```
+curl -fsSL https://gegge01.github.io/gitta/pubkey.asc \
+  | sudo tee /usr/share/keyrings/gitta-archive-keyring.asc >/dev/null
+```
+
+2) Add the apt source (stable):
+
+```
+echo "deb [signed-by=/usr/share/keyrings/gitta-archive-keyring.asc] \
+  https://gegge01.github.io/gitta stable main" | sudo tee /etc/apt/sources.list.d/gitta.list
+sudo apt update
+sudo apt install gitta
+```
+
+Nightly builds are available at `dists/nightly`:
+
+```
+echo "deb [signed-by=/usr/share/keyrings/gitta-archive-keyring.asc] \
+  https://gegge01.github.io/gitta nightly main" | sudo tee /etc/apt/sources.list.d/gitta-nightly.list
+sudo apt update
+```
+
+Tip: We plan to provide a `gitta-archive-keyring` package; once available, replace the curl step with `apt install gitta-archive-keyring`.
+\nOnce the repo is configured and the key is installed, you can switch to managing the key via the keyring package:
+
+Once the repo is configured and the key is installed, you can switch to managing the key via the keyring package:
+
+sudo apt install gitta-archive-keyring
+```

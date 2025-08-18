@@ -1,15 +1,18 @@
-name: release
+name: nightly
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch: {}
 
 jobs:
   build-deb:
-    name: Build .deb (amd64)
+    name: Nightly .deb (amd64)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -35,32 +38,37 @@ jobs:
           echo "Using key: $KEY_FPR"
           mkdir -p build/gpg
           gpg --armor --export "$KEY_FPR" > build/gpg/pubkey.asc
-      - name: Build deb via nfpm
+      - name: Compute nightly version
+        id: ver
+        run: |
+          DATE=$(date -u +%Y%m%d)
+          SHA=$(git rev-parse --short=8 HEAD)
+          VERSION="0.1.0-nightly.${DATE}+${SHA}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Build deb via nfpm (nightly)
         env:
-          VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
           echo "Using version: $VERSION"
           sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.yaml
           mkdir -p dist
           nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_amd64.deb
-      - name: Build archive-keyring deb
+      - name: Build archive-keyring deb (nightly)
         env:
-          VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
           sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.keyring.yaml
           nfpm pkg --packager deb -f nfpm.keyring.yaml --target dist/gitta-archive-keyring_${VERSION}_all.deb
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debs
+          name: nightly-debs
           path: dist/*.deb
 
   publish-apt:
-    name: Publish APT repo to GitHub Pages
+    name: Publish APT nightly to GitHub Pages
     runs-on: ubuntu-latest
     needs: smoke-test
     permissions:
@@ -71,10 +79,10 @@ jobs:
         with:
           ref: gh-pages
           path: gh-pages
-      - name: Download deb artifacts
+      - name: Download nightly artifacts
         uses: actions/download-artifact@v4
         with:
-          name: debs
+          name: nightly-debs
           path: gh-pages
       - name: Install apt tools
         run: |
@@ -96,12 +104,13 @@ jobs:
         run: |
           KEY_FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5;exit}')
           gpg --armor --export "$KEY_FPR" > pubkey.asc
-      - name: Publish APT metadata (InRelease + Release.gpg)
+      - name: Publish APT metadata (nightly)
         working-directory: gh-pages
         env:
           PACKAGE_NAME: gitta
           ARCHES: amd64
           DEB_GLOB: "*.deb"
+          DIST: nightly
         run: |
           bash ../build/publish-apt.sh
       - name: Commit and push
@@ -111,21 +120,19 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add -A
-          git commit -m "Update APT repo for ${GITHUB_REF_NAME}" || echo "No changes"
+          git commit -m "Nightly APT update $(date -u +%F)" || echo "No changes"
           git push origin HEAD:gh-pages
 
   smoke-test:
     name: Smoke test .deb in container
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     needs: build-deb
     steps:
       - uses: actions/checkout@v4
-      - name: Download deb artifacts
+      - name: Download nightly artifacts
         uses: actions/download-artifact@v4
         with:
-          name: debs
+          name: nightly-debs
           path: dist
       - name: List artifacts
         run: ls -la dist
