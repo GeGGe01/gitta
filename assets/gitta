@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Simple launcher for the packaged Python module
-exec /usr/bin/env python3 -m gitta "$@"
-
