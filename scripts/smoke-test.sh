@@ -17,7 +17,6 @@ docker run --rm -i -v "$(pwd)":/work "$IMG" bash -lc "\
   apt-get install -y -qq ca-certificates gnupg >/dev/null; \
   dpkg -i /work/$DEB_PATH || apt-get -f install -y -qq; \
   gitta --version; \
-  gitta hello smoke; \
+  printf "- first change\n- second change\n" | gitta | grep -q "^first change$"; \
   echo 'OK' \
 "
-
