@@ -1,46 +1,70 @@
 # AGENTS.md — Agent spec: finish repo on first-init and keep it sane
 
-**Språk:** Svenska
-**Ton:** rak och handlingsorienterad — agenten ska fråga, föreslå och skapa. Inte gissa stora beslut utan bekräftelse.
-**Mål:** gör repot `apt`-repo-redo med single-binary packaging (.deb), CI/release, publish-scripts och rimlig säkerhets-/deploy-konfiguration. Fyll i tomma filer, lägg till .gitignore, skapa grundläggande paket/CI/skript och be användaren om beslut där det behövs.
+**Språk:** Svenska  
+**Ton:** rak och handlingsorienterad — agenten ska fråga, föreslå och skapa. Inte gissa stora beslut utan bekräftelse.  
+**Mål:** gör repot apt‑repo‑redo med single‑binary packaging (.deb), CI/release, publish‑scripts och säker nyckelhantering. Fyll i tomma filer, lägg till .gitignore, skapa grundläggande paket/CI/skript och be användaren om beslut där det behövs.
 
-### Sammanfattning av vad agenten måste göra direkt (first-init)
+---
 
-1. Läs repots nuvarande struktur (kataloger ovan). Bekräfta att `dist/`, `packaging/`, `assets/`, `build/`, `.github/` finns.
-2. Skapa eller uppdatera `.gitignore`. (Se template nedan.)
-3. Ställ följande frågor till projektägaren (se avsnitt Frågor). Vänta på svar innan du tar beslut i dessa områden: `project_name`, `maintainer`, `homepage`, `default_branch`, `deb_dependencies`, `target_archs`, `CI-deploy-host` och GPG-nyckel-hantering.
-4. Generera och skriv ut innehåll för följande nyckelfiler (fyll med placeholders/enhetliga värden där du inte har svar):
-    - nfpm.yaml
-    - build/publish-apt.sh
-    - packaging/debian/control
-    - .goreleaser.yml (minimal)
-    - .github/workflows/release.yml (anropa goreleaser)
-    - Makefile med make build, make package, make publish, make test-package
-    - packaging/repo-signer/README.md (instruktioner för signing)
+## 1. Kort målbild
+Agenten ska kunna köra en `first‑init` som
 
-5. Kör lokala sanity-kontroller (ej körbar build): parse YAML, kontrollera att sökvägar i nfpm.yaml matchar assets/ och cmd/. Rapportera fel.
-6. Commit-a allt i en initial branch-commit (git add + git commit -m "scaffold: packaging + CI + publish scripts"). Fråga om du ska pusha.
+- skapar / uppdaterar nödvändig packaging‑scaffold (nfpm, goreleaser, debian/control, Makefile)
+- lägger in säkra `.gitignore`‑regler
+- genererar publish‑skript (`publish‑apt.sh`) som producerar `Packages`, `Release`, **InRelease** och signerar korrekt
+- validerar att refererade filer (binär i `cmd/`, `assets/`) finns och felar tidigt om inte
+- committar scaffold i en ny branch och frågar innan push
 
-### Frågor agenten måste ställa (svara innan skapande av vissa filer)
+Agenten ska *inte* force‑pusha eller ändra repo‑policyer utan uttryckligt godkännande.
 
-1. Vad är projektets namn (paketnamn i apt)? (ex: ordna)
-2. Vilken maintainer / e-post ska stå i debian control?
-3. Vilken licens (MIT/Apache2/GPL)?
-4. Vilka arkitekturer ska byggas (amd64, arm64)?
-5. Ska vi signera APT Release med GPG från CI (ja/nej)? Om ja: ange var GPG private key läggs (GitHub secret)?
-6. Var ska apt-repo publiceras (SSH host / rsync endpoint / GitHub Pages)? Ange access/metod.
-7. Vill du att goreleaser skapar .deb eller vill du använda nfpm manuellt? (rekommenderat: goreleaser + nfpm)
-8. Ska paketet installera systemd-unit (assets/appname.service) och autostarta? (ja/nej)
-9. Behöver vi en archive-keyring paket för att distribuera repo-key? (rekommenderat: ja)
-10. Vill du att agenten automatiskt pushar dev -> nightly eller ska det vara manuellt?
+---
 
-## Viktiga .gitignore (skriv i repo root)
+## 2. First‑init — steg (konkret)
+1. Läs repo och bekräfta att huvudmappar finns: `dist/`, `packaging/`, `assets/`, `build/`, `.github/`, `cmd/` eller `src/`.
+2. Skapa/uppdatera `.gitignore` (se template nedan). Ta *inte* med `.goreleaser.yml` i `.gitignore`.
+3. Ställ frågor (se avsnitt **Frågor**) och spara svar som placeholders som används i mallfiler.
+4. Generera dessa filer (med placeholders där användaren ej svarat):
+   - `nfpm.yaml`
+   - `build/publish‑apt.sh` (skapar `Packages`, `Release`, **InRelease**, signerar)
+   - `packaging/debian/control`
+   - `.goreleaser.yml` (minimal)
+   - `.github/workflows/release.yml` (kallar goreleaser eller bygger + nfpm)
+   - `Makefile` med `build`, `package`, `publish`, `test-package`
+   - `packaging/repo-signer/README.md` (instruktion: hur CI importerar GPG och signerar)
+   - placeholder `cmd/{{PROJECT_NAME}}/main.go` om saknas (skriv version och help)
+   - `scripts/smoke-test.sh` (installerar .deb i en container och kör smoke)
+5. Validera: parse YAML (nfpm, goreleaser), kontrollera att sökvägar matchar `assets/` och `cmd/`. Fel → abort och rapportera.
+6. Skapa en backup‑branch: `git branch scaffold-backup`.
+7. `git add` + `git commit -m "scaffold: packaging + CI + publish scripts"` i branch `scaffold/packaging`.
+8. Fråga användaren om den vill push:a branchen och/eller öppna PR.
+
+---
+
+## 3. Frågor agenten måste ställa före generering
+Agenten ska **alltid** fråga dessa och spara svar. Svaren används för att ersätta placeholders.
+
+1. **Project name** (paketnamn i apt) — ex: `ordna`
+2. **Maintainer** (Name <email>)
+3. **Homepage** (URL)
+4. **License** (MIT / Apache-2.0 / GPL‑3.0)
+5. **Target architectures** (comma separated, t.ex. `amd64,arm64`)
+6. **Sign APT Release in CI?** (ja/nej). Om ja: ange GitHub secret‑namn för private key och passphrase.
+7. **Deploy method** (rsync / ssh / github-pages). Ange endpoint om relevant.
+8. **Use goreleaser or manual nfpm?** (rekommend: goreleaser + nfpm)
+9. **Install systemd unit & enable by default?** (ja/nej)
+10. **Create archive‑keyring package?** (rekommend: ja)
+
+> Agenten får inte anta defaults för signering, deploy‑access eller auto‑enable av systemd — fråga.
+
+---
+
+## 4. .gitignore (template)
 ```
 # build artifacts
-/dist/
-/build/
-/bin/
-/out/
+dist/
+build/
+bin/
+out/
 
 # OS/editor
 .DS_Store
@@ -54,6 +78,7 @@
 private.key
 secrets.*
 .env
+packaging/repo-signer/private*
 
 # packaging artifacts
 *.deb
@@ -65,173 +90,89 @@ secrets.*
 .vscode/
 .idea/
 
-# goreleaser state
-.goreleaser.yml
-```
-> [!WARNING]
-> Agent: lägg alltid till dist/ och secrets-filer här.
+# CI artefacts
+dist/
 
-## Filmallar — kopiera/skriv exakt innehåll (fyll placeholders med svar från frågorna)
-`nfpm.yaml` **(minimal)**
+# keep config files in repo: do NOT ignore .goreleaser.yml
 ```
-name: {{PROJECT_NAME}}
-version: 0.0.1
-arch: amd64
-platform: linux
-maintainer: "{{MAINTAINER}}"
-vendor: "{{MAINTAINER}}"
-description: "TODO: short description"
-license: "{{LICENSE}}"
-homepage: "{{HOMEPAGE}}"
-contents:
-  - src: ./dist/{{PROJECT_NAME}}
-    dst: /usr/bin/{{PROJECT_NAME}}
-  - src: ./assets/appname.1
-    dst: /usr/share/man/man1/{{PROJECT_NAME}}.1
-  - src: ./assets/appname.service
-    dst: /lib/systemd/system/{{PROJECT_NAME}}.service
-deb:
-  depends:
-    - ca-certificates
-```
-> [!IMPORTANT]
-> Agent: ersätt placeholders med användar-svar. Spara som `nfpm.yaml`.
+> **OBS:** Ta bort eventuella rader som ignorerar `.goreleaser.yml` — den ska finnas i repo.
 
-`build/publish-apt.sh`
-```
-#!/usr/bin/env bash
-set -euo pipefail
-REPO_ROOT="/srv/apt-repo"
-POOL="$REPO_ROOT/pool/main"
-DIST_DIR="$1"  # path to .deb file
+---
 
-if [[ -z "$DIST_DIR" ]]; then
-  echo "Usage: $0 path/to/package.deb"
-  exit 2
-fi
+## 5. Viktiga mall‑filer och noter (agentens output)
+Agenten skapar filer med placeholders. Här är korta noter och viktiga implementationer agenten använder.
 
-cp "$DIST_DIR" "$POOL/"
-cd "$REPO_ROOT"
+### 5.1 `build/publish-apt.sh` — signera med InRelease
+Agenten skapar ett publiceringsskript som **genererar `Packages`, `Release`, `InRelease`** och signerar med GPG. Viktigt: använd både `Release.gpg` (detached) och `InRelease` (clearsigned):
+
+```bash
+# create Packages
 apt-ftparchive packages ./pool/main > ./dists/stable/main/binary-amd64/Packages
 gzip -f ./dists/stable/main/binary-amd64/Packages
+# create Release
 apt-ftparchive release ./dists/stable > ./dists/stable/Release
-# Sign Release (CI should set REPO_GPG_KEY)
-if [[ -n "${REPO_GPG_KEY:-}" ]]; then
-  gpg --batch --yes --default-key "$REPO_GPG_KEY" --output ./dists/stable/Release.gpg --detach-sign ./dists/stable/Release
-fi
-echo "Published $DIST_DIR to $REPO_ROOT"
+# create InRelease (clearsigned)
+gpg --batch --yes --default-key "$REPO_GPG_KEY" --output ./dists/stable/InRelease --clearsign ./dists/stable/Release
+# create detached signature for clients that expect it
+gpg --batch --yes --default-key "$REPO_GPG_KEY" --output ./dists/stable/Release.gpg --detach-sign ./dists/stable/Release
 ```
 
-> [!IMPORTANT]
-> Agent: make executable (`chmod +x`) and warn user that REPO_GPG_KEY must be provided in CI.
+Agenten lägger en kommentar om att **REPO_GPG_KEY** ska finnas som GitHub Secret och importeras säkert i CI‑jobbet.
 
-`packaging/debian/control` **(skeleton)**
+### 5.2 GPG import i GitHub Actions (secure snippet)
+Agenten skapar ett säkert jobbsteg för att importera GPG‑nyckel i GH Actions runner:
 
+```yaml
+- name: Import GPG key
+  env:
+    GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_KEY }}
+    GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
+  run: |
+    set -e
+    # Import key
+    echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+    # Mark ownertrust ultimate for that key
+    KEY_FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5;exit}')
+    echo "$KEY_FPR:6:" | gpg --import-ownertrust
 ```
-Source: {{PROJECT_NAME}}
-Section: utils
-Priority: optional
-Maintainer: {{MAINTAINER}}
-Standards-Version: 4.6.0
-Build-Depends: debhelper (>= 11)
+Agenten tar bort nyckeln (and trust) innan steget är klart om så önskas.
 
-Package: {{PROJECT_NAME}}
-Architecture: any
-Depends: ${misc:Depends}, ca-certificates
-Description: TODO short description
- Long description here.
-```
+---
 
-`.goreleaser.yml` **(minimal)**
+## 6. Validering och QA (vad agenten kör innan commit)
+1. YAML‑lint på `nfpm.yaml` och `.goreleaser.yml` (yaml parser).  
+2. Kontrollera att `cmd/{{PROJECT_NAME}}/main.go` eller motsvarande exekverbara källa finns — om ej: skapa placeholder och markera i commit.  
+3. Kontrollera att `nfpm.yaml` innehåller `src:` vägar som faktiskt existerar i repo — annars fel.  
+4. Kör `nfpm pkg -f nfpm.yaml --target /tmp/test.deb` om `nfpm` finns i miljön (CI).  
+5. Kör `scripts/smoke-test.sh` i en container i CI (valfritt steg) för en snabb sanity install.  
+6. Visa `git status --porcelain` och lista filer som kommer att committas — begär explicit ack från användaren.
 
-```
-project_name: {{PROJECT_NAME}}
-builds:
-  - id: {{PROJECT_NAME}}
-    binary: {{PROJECT_NAME}}
-    goos: linux
-    goarch:
-      - amd64
-      - arm64
-    main: ./cmd/{{PROJECT_NAME}}/main.go
+---
 
-nfpm:
-  releases:
-    - dist: deb
-      section: main
-      changelog: packaging/debian/changelog
-      # reads nfpm.yaml by default
-archives:
-  - format: tar.gz
-check:
-  disable:
-    - brew
-```
+## 7. Commit & push policy
+- Skapa alltid backup‑branch före ändringar: `git branch scaffold-backup`.
+- Gör commit i en dedikerad branch: `scaffold/packaging`.
+- Fråga användaren innan push eller PR‑öppning.  
+- Agenten får **inte** force‑pusha till skyddade branches utan klar confirm.
 
-> [!WARNING]
-> Agent: replace placeholders; warn user to verify `cmd/` path.
+---
 
-`.github/workflows/release.yml` **(minimal, uses goreleaser)**
+## 8. Extra som agenten får besluta automatiskt
+- Lägga till `dist/` i `.gitignore` och andra build‑artifacts.  
+- Skapa grundläggande `Makefile` med targets för `build`, `package`, `publish`.  
+- Skapa placeholder‑manpage och systemd‑unit i `assets/` om de saknas.
 
-```
-name: Release
-on:
-  push:
-    tags:
-      - 'v*.*.*'
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.20'
-      - name: Run goreleaser
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          version: latest
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
-```
+---
 
-> [!NOTE]
-> Agent: if user picks rsync deployment, create workflow step to `rsync` `.deb` to deploy host.
+## 9. Failure modes agenten måste hantera och meddelanden
+- **Missing GPG secrets** → halt och instruktion: hur man lägger till `REPO_GPG_KEY` och `REPO_GPG_PASSPHRASE` i GitHub Secrets.
+- **Missing cmd/ binary path** → skapa placeholder eller be användaren fixa; abort om user vill.
+- **packaging/debian/control missing maintainer/homepage** → fråga användaren.
+- **Permissions** → se till att `build/publish-apt.sh` är exekverbar; sätt `chmod +x`.
 
-### Vad agenten får besluta själv (utan att fråga)
-- Lägg till `dist/` i `.gitignore`.
-- Skapa grundläggande Makefile med `build`, `package`, `publish` mål som anropar goreleaser eller nfpm.
-- Skapa `packaging/repo-signer/README.md` med instruktioner för hur CI importerar GPG-nyckel.
-- Om `assets/` saknar manpage/systemd, skapa små placeholderfiler med `TODO` text.
+---
 
-### Extra steg agenten ska föreslå efter scaffold
-- Test-install: skapa en Dockerfile/test-script som installerar .deb i en clean container och kör smoke tests.
-- Keyring package: skapa archive-keyring paketmall och instruktion för användare att lägga till signed-by i sources.list.
-- Backup/rollback: dokumentera hur man tar snapshot av pool/ innan publicering.
-
-### Validering / QA-checks agenten kör före commit
-1. YAML/JSON lint (nfpm, goreleaser).
-
-2. Kontroll att cmd/{{PROJECT_NAME}}/main.go finns om goreleaser refererar den. Om ej: skapa placeholder main.go som skriver version.
-
-3. Kör nfpm pkg -f nfpm.yaml --target /tmp/test.deb om nfpm finns i environment, annars skip.
-
-4. Kör git status --porcelain och visa vad som kommer att committas innan commit. Begär --yes från användaren.
-
-### Output & kommunikation
-- Agenten ska visa en CHANGELOG.md entry: scaffold: packaging + CI + publish scripts samt commit.
-- Lista av filer skapade/ändrade i commit.
-- En kort checklist för användaren med nästa steg (sätta GitHub secrets, justera nfpm.yaml description, testa publish-apt.sh i staging).
-
-### Failure modes agenten måste hantera tydligt
-- Missing GPG secrets → halt med instruktion hur man lägger till REPO_GPG_KEY och REPO_GPG_PASSPHRASE.
-- Missing cmd/ binary path → skapa placeholder och varna.
-- packaging/debian/control missing mantainer/home → fråga.
-- Permissions: se till att build/publish-apt.sh är exekverbar.
-
-### Tidigt prompt-skript (mall) agenten använder för att fråga användaren
+## 10. Snabb prompt‑mall agenten använder
 ```
 Project name (packagename): [ordna]
 Maintainer (Name <email>): [gg <you@example.org>]
@@ -243,7 +184,13 @@ CI redeploy host (user@host:/path): []
 Sign APT Release with GPG in CI? (y/n): [y]
 ```
 
-## Slutnot
+---
 
-> [!IMPORTANT]
-> Agenten ska vara konservativ: fråga på beslut som påverkar signing, autodeploy eller branch history. Fyll och committa scaffolding men vänta på explicit konfirmering innan du pushar eller kör publish-apt.sh. Efter dessa steg är repot paket-redo men kräver manuella secrets/host-konfigurationer.
+## 11. Next steps (efter att scaffold är committat)
+- Användaren: sätt GitHub Secrets (`REPO_GPG_KEY`, `REPO_GPG_PASSPHRASE`, `SSH_DEPLOY_KEY`).
+- Test: kör CI:s release pipeline mot en staging apt‑repo (inte produktion första gången).
+- Validera apt‑client: på en test‑VM lägg till keyring och gör `apt update` + `apt install project`.
+
+---
+
+> **Kort och tydligt:** agenten scaffoldar allt som behövs för att paketera en single‑binary som .deb och publicera i ett apt‑repo. Den frågar om signering, deploy och systemd‑policy, validerar slingan och committar i en branch — men den pushar eller deployar bara efter bekräftelse.
