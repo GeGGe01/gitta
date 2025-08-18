@@ -24,6 +24,17 @@ jobs:
         uses: goreleaser/nfpm-action@v2
         with:
           install-only: true
+      - name: Import GPG and export public key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -e
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback --import
+          KEY_FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5;exit}')
+          echo "Using key: $KEY_FPR"
+          mkdir -p build/gpg
+          gpg --armor --export "$KEY_FPR" > build/gpg/pubkey.asc
       - name: Build deb via nfpm
         env:
           VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
@@ -34,6 +45,14 @@ jobs:
           sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.yaml
           mkdir -p dist
           nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_amd64.deb
+      - name: Build archive-keyring deb
+        env:
+          VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.keyring.yaml
+          nfpm pkg --packager deb -f nfpm.keyring.yaml --target dist/gitta-archive-keyring_${VERSION}_all.deb
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

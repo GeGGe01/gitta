@@ -49,7 +49,7 @@ project/
 
 Stable releases are published to GitHub Pages. Add the repo and key:
 
-1) Import the public key (preferred: keyring path):
+1) Import the public key (preferred: keyring path; first-time bootstrap):
 
 ```
 curl -fsSL https://gegge01.github.io/gitta/pubkey.asc \
@@ -74,3 +74,7 @@ sudo apt update
 ```
 
 Tip: We plan to provide a `gitta-archive-keyring` package; once available, replace the curl step with `apt install gitta-archive-keyring`.
+\nOnce the repo is configured and the key is installed, you can switch to managing the key via the keyring package:
+\n```
+sudo apt install gitta-archive-keyring
+```

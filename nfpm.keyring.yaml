@@ -1,0 +1,22 @@
+name: gitta-archive-keyring
+arch: all
+platform: linux
+version: 0.1.0
+section: admin
+priority: optional
+maintainer: "gg <apt@njb.gg>"
+description: |
+  Archive keyring for the gitta APT repository.
+  Installs the public key to /usr/share/keyrings/gitta-archive-keyring.asc.
+homepage: https://gegge01.github.io/gitta
+license: GPL-3.0
+vendor: gitta
+overrides:
+  deb:
+    fields:
+      Homepage: https://gegge01.github.io/gitta
+contents:
+  - src: ./build/gpg/pubkey.asc
+    dst: /usr/share/keyrings/gitta-archive-keyring.asc
+    file_info:
+      mode: 0644

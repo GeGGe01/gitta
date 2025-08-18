@@ -19,6 +19,11 @@ package: ## Build .deb via nfpm
 	mkdir -p $(DIST)
 	nfpm pkg --packager deb -f nfpm.yaml --target $(DIST)/$(PROJECT)_$(VERSION)_$(ARCH).deb
 
+package-keyring: ## Build archive keyring .deb (requires exported key at build/gpg/pubkey.asc)
+	mkdir -p $(DIST)
+	@test -f build/gpg/pubkey.asc || (echo "Missing build/gpg/pubkey.asc. Export with: gpg --armor --export <FPR> > build/gpg/pubkey.asc" && false)
+	nfpm pkg --packager deb -f nfpm.keyring.yaml --target $(DIST)/$(PROJECT)-archive-keyring_$(VERSION)_all.deb
+
 publish: ## Publish to gh-pages apt repo (local test)
 	@[ -d repo ] || mkdir -p repo
 	cp -v $(DIST)/$(PROJECT)_$(VERSION)_$(ARCH).deb repo/
