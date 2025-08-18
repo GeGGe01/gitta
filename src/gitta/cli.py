@@ -33,7 +33,7 @@ def read_input(path: str | None) -> str:
     finally:
         try:
             os.unlink(tmpname)
-        except Exception:
+        except OSError:
             pass
 
 
