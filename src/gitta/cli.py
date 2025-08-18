@@ -102,7 +102,11 @@ def main(argv=None) -> int:
     BODY_WRAP = args.wrap
 
     src = read_input(args.input)
-    msg = build_commit_message(src)
+
+
+
+    src = read_input(args.input)
+    msg = build_commit_message(src, subject_max=args.subject_max, body_wrap=args.wrap)
     if args.output:
         Path(args.output).write_text(msg, encoding="utf-8")
     else:
