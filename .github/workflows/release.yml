@@ -20,10 +20,21 @@ jobs:
         run: |
           python -m pip install --upgrade build
           python -m build
-      - name: Install nfpm
-        uses: goreleaser/nfpm-action@v2
-        with:
-          install-only: true
+      - name: Install nfpm (standalone binary)
+        env:
+          NFPM_VERSION: 2.38.1
+        run: |
+          set -e
+          ARCH=$(dpkg --print-architecture)
+          case "$ARCH" in
+            amd64) NFPM_ARCH="x86_64" ;;
+            arm64) NFPM_ARCH="arm64" ;;
+            armhf) NFPM_ARCH="armv7" ;;
+            *) echo "Unsupported arch: $ARCH"; exit 1 ;;
+          esac
+          curl -fsSL -o nfpm.tgz "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_${NFPM_ARCH}.tar.gz"
+          sudo tar -C /usr/local/bin -xzf nfpm.tgz nfpm
+          nfpm --version
       - name: Import GPG and export public key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
