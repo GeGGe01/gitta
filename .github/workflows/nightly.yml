@@ -35,8 +35,16 @@ jobs:
             armhf) NFPM_ARCH="armv7" ;;
             *) echo "Unsupported arch: $ARCH"; exit 1 ;;
           esac
-          curl -fsSL -o nfpm.tgz "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_${NFPM_ARCH}.tar.gz"
-          sudo tar -C /usr/local/bin -xzf nfpm.tgz nfpm
+          URL="https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_Linux_${NFPM_ARCH}.tar.gz"
+          echo "Downloading $URL"
+          curl -fsSL -o /tmp/nfpm.tgz "$URL"
+          mkdir -p /tmp/nfpm
+          tar -xzf /tmp/nfpm.tgz -C /tmp/nfpm
+          if [ -f /tmp/nfpm/nfpm ]; then
+            sudo install -m 0755 /tmp/nfpm/nfpm /usr/local/bin/nfpm
+          else
+            sudo install -m 0755 /tmp/nfpm/*/nfpm /usr/local/bin/nfpm
+          fi
           nfpm --version
       - name: Import GPG and export public key
         env:
