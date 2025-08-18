@@ -1,0 +1,30 @@
+project_name: gitta
+dist: dist
+before:
+  hooks:
+    - bash -lc "python3 -m pip install --upgrade build >/dev/null 2>&1 || true"
+    - bash -lc "python3 -m build || true"
+builds: []
+release:
+  github:
+    owner: gegge01
+    name: gitta
+nfpms:
+  - id: deb
+    package_name: gitta
+    formats: [deb]
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Arch }}"
+    maintainers: ["gg <apt@njb.gg>"]
+    homepage: https://gegge01.github.io/gitta
+    license: GPL-3.0
+    description: gitta — Python CLI packaged as .deb
+    dependencies: [python3, bash]
+    contents:
+      - src: ./src/gitta
+        dst: /usr/lib/gitta/gitta
+      - src: ./assets/gitta
+        dst: /usr/bin/gitta
+        file_info:
+          mode: 0755
+      - src: ./assets/gitta.1
+        dst: /usr/share/man/man1/gitta.1

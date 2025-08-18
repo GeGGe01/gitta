@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitta"
+version = "0.1.0"
+description = "gitta — placeholder Python CLI"
+readme = "docs/README.md"
+requires-python = ">=3.8"
+license = { text = "GPL-3.0" }
+authors = [{ name = "gg", email = "apt@njb.gg" }]
+homepage = "https://gegge01.github.io/gitta"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: POSIX :: Linux",
+]
+
+[project.scripts]
+gitta = "gitta.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["gitta*"]
+exclude = ["tests*"]
