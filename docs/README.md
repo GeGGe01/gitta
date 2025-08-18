@@ -75,6 +75,8 @@ sudo apt update
 
 Tip: We plan to provide a `gitta-archive-keyring` package; once available, replace the curl step with `apt install gitta-archive-keyring`.
 \nOnce the repo is configured and the key is installed, you can switch to managing the key via the keyring package:
-\n```
+
+Once the repo is configured and the key is installed, you can switch to managing the key via the keyring package:
+
 sudo apt install gitta-archive-keyring
 ```
