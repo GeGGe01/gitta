@@ -146,7 +146,7 @@ jobs:
     name: Smoke test .deb in container
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      actions: read
     needs: build-deb
     steps:
       - uses: actions/checkout@v4
