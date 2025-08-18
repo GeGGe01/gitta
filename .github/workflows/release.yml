@@ -72,6 +72,11 @@ jobs:
           KEY_FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5;exit}')
           echo "$KEY_FPR:6:" | gpg --import-ownertrust
           echo "Using key $KEY_FPR"
+      - name: Export public key
+        working-directory: gh-pages
+        run: |
+          KEY_FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/{print $5;exit}')
+          gpg --armor --export "$KEY_FPR" > pubkey.asc
       - name: Publish APT metadata (InRelease + Release.gpg)
         working-directory: gh-pages
         env:
