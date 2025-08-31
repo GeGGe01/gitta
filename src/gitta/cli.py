@@ -415,8 +415,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("graph", help="Show branch graph")
     sp.set_defaults(func=cmd_graph)
 
-    sp = sub.add_parser("stage", help="Interaktiv staging")
-    sp.add_argument("--files", nargs="*", help="Filer att stage:a (skippar interaktivt läge)")
+    sp = sub.add_parser("stage", help="Interactive staging")
+    sp.add_argument("--files", nargs="*", help="Files to stage (skips interactive mode)")
     sp.set_defaults(func=cmd_stage)
 
     sp = sub.add_parser("commit", help="Skapa commit-meddelande från bullets och committa")
