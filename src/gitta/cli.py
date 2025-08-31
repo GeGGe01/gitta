@@ -174,12 +174,12 @@ def cmd_status(_: argparse.Namespace) -> int:
             continue
         code = ln[:2]
         path = ln[3:]
-        if code[0] != " ":
+        if code == "??":
+            untracked.append(path)
+        elif code[0] != " ":
             staged.append(path)
         elif code[1] != " ":
             changed.append(path)
-        else:
-            untracked.append(path)
     if staged:
         print(color("Staged:", fg="green", bold=True))
         for p in staged:
