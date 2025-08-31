@@ -461,6 +461,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp2.set_defaults(func=cmd_tag)
 
     sp = sub.add_parser("tui", help="Starta TUI-gränssnittet (kräver 'textual')")
+    sp.add_argument("--theme", choices=["dark", "light", "dracula"], default=None, help="Välj inbyggt tema")
+    sp.add_argument("--css", default=None, help="Sökväg till egen CSS för TUI")
     sp.set_defaults(func=cmd_tui)
 
     return p
@@ -483,7 +485,7 @@ def main(argv=None) -> int:
     return int(func(args))
 
 
-def cmd_tui(_: argparse.Namespace) -> int:
+def cmd_tui(ns: argparse.Namespace) -> int:
     try:
         from .tui.app import run as run_tui
     except Exception as e:
@@ -493,4 +495,4 @@ def cmd_tui(_: argparse.Namespace) -> int:
             f"Detalj: {e}\n"
         )
         return 1
-    return run_tui()
+    return run_tui(theme=ns.theme, css_path=ns.css)

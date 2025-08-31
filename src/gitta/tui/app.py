@@ -1,7 +1,9 @@
 from __future__ import annotations
 import subprocess
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from pathlib import Path
+import os
 
 
 def _run_git(*args: str) -> Tuple[int, str, str]:
@@ -33,7 +35,17 @@ def _get_diff(path: str | None) -> str:
     return out
 
 
-def run() -> int:
+THEMES = ["dark", "light", "dracula"]
+
+
+def _read_builtin_css(name: str) -> Optional[str]:
+    base = Path(__file__).parent / "themes" / f"{name}.css"
+    if base.exists():
+        return base.read_text(encoding="utf-8")
+    return None
+
+
+def run(theme: Optional[str] = None, css_path: Optional[str] = None) -> int:
     # Lazy import to avoid hard dependency if Textual not installed
     from textual.app import App, ComposeResult
     from textual.widgets import Header, Footer, Static, TabbedContent, TabPane, Tabs, Input, Button
@@ -65,18 +77,17 @@ def run() -> int:
             self.update(_get_diff(path))
 
     class GittaApp(App):
-        CSS = """
-        Screen { layout: vertical; }
-        #body { layout: horizontal; }
-        .panel { border: solid $surface; } 
-        """
+        CSS = "Screen { layout: vertical; } #body { layout: horizontal; }"
         BINDINGS = [
             ("q", "quit", "Quit"),
             ("r", "refresh", "Refresh"),
             ("g", "graph", "Graph"),
             ("s", "status", "Status"),
             ("d", "diff", "Diff"),
+            ("t", "toggle_theme", "Theme"),
         ]
+
+        _theme_name: str = theme or os.environ.get("GITTA_TUI_THEME", "dark")
 
         def compose(self) -> ComposeResult:
             yield Header()
@@ -90,6 +101,18 @@ def run() -> int:
                     )
                     yield tabs
             yield Footer()
+
+        def on_mount(self) -> None:
+            # Load CSS from explicit file or built-in theme
+            if css_path:
+                try:
+                    self.load_css(css_path)
+                except Exception as e:
+                    self.bell()
+            else:
+                css = _read_builtin_css(self._theme_name)
+                if css:
+                    self.stylesheet.read(css, path=f"builtin:{self._theme_name}")
 
         def action_refresh(self) -> None:
             self.query_one(StatusView).refresh_data()
@@ -107,5 +130,18 @@ def run() -> int:
         def action_diff(self) -> None:
             self.query_one(TabbedContent).active = 2
 
-    return GittaApp().run()
+        def action_toggle_theme(self) -> None:
+            # Cycle themes if using built-ins
+            if css_path:
+                return
+            try:
+                idx = THEMES.index(self._theme_name)
+            except ValueError:
+                idx = -1
+            self._theme_name = THEMES[(idx + 1) % len(THEMES)]
+            css = _read_builtin_css(self._theme_name)
+            if css:
+                self.stylesheet.read(css, path=f"builtin:{self._theme_name}")
+                self.refresh()
 
+    return GittaApp().run()
