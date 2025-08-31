@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test Python CLI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Test CLI functionality
+      run: |
+        cd ${{ github.workspace }}
+        # Test version command
+        PYTHONPATH=src python3 -c "from gitta.cli import main; main(['--version'])"
+        # Test basic functionality with sample input
+        echo -e "- test commit message generation\n- validate CLI interface" | PYTHONPATH=src python3 -m gitta
+        # Test help command
+        PYTHONPATH=src python3 -m gitta --help
+    
+    - name: Validate configuration files
+      run: |
+        # Validate YAML syntax
+        python3 -c "import yaml; yaml.safe_load(open('nfpm.yaml'))" && echo "✓ nfpm.yaml valid"
+        python3 -c "import yaml; yaml.safe_load(open('.goreleaser.yml'))" && echo "✓ .goreleaser.yml valid"
+        python3 -c "import yaml; yaml.safe_load(open('nfpm.keyring.yaml'))" && echo "✓ nfpm.keyring.yaml valid"
+        
+        # Check that referenced files exist
+        test -d src/gitta && echo "✓ src/gitta exists"
+        test -f assets/gitta && echo "✓ assets/gitta exists"
+        test -f assets/gitta.1 && echo "✓ assets/gitta.1 exists"
+        test -x build/publish-apt.sh && echo "✓ build/publish-apt.sh executable"
+        
+    - name: Check launcher script syntax
+      run: |
+        bash -n assets/gitta && echo "✓ assets/gitta syntax valid"
+        bash -n build/publish-apt.sh && echo "✓ build/publish-apt.sh syntax valid"
+        bash -n scripts/smoke-test.sh && echo "✓ scripts/smoke-test.sh syntax valid"

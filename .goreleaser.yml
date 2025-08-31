@@ -1,0 +1,71 @@
+# GoReleaser configuration for gitta
+# Note: This project uses Python, but GoReleaser can still help with releases
+
+version: 2
+
+project_name: gitta
+
+builds:
+  - skip: true  # Skip Go builds since this is a Python project
+
+nfpms:
+  - id: gitta
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+    package_name: gitta
+    vendor: gitta
+    homepage: https://gegge01.github.io/gitta
+    maintainer: "gg <apt@njb.gg>"
+    description: |
+      gitta — Make git commit message from bullet list.
+      Reads a list of bullet points and emits a conventional commit message
+      with a concise subject and a wrapped body.
+    license: GPL-3.0
+    formats:
+      - deb
+    bindir: /usr/bin
+    contents:
+      # Install Python sources into a fixed prefix
+      - src: ./src/gitta
+        dst: /usr/lib/gitta/gitta
+      # CLI launcher script into PATH  
+      - src: ./assets/gitta
+        dst: /usr/bin/gitta
+        file_info:
+          mode: 0755
+      # Manpage
+      - src: ./assets/gitta.1
+        dst: /usr/share/man/man1/gitta.1
+      # Systemd service (optional)
+      - src: ./assets/gitta.service
+        dst: /lib/systemd/system/gitta.service
+    dependencies:
+      - python3
+      - bash
+    overrides:
+      deb:
+        fields:
+          Homepage: https://gegge01.github.io/gitta
+          Vcs-Browser: https://github.com/gegge01/gitta
+          Vcs-Git: https://github.com/gegge01/gitta.git
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src/*
+      - assets/*
+      - README*
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
