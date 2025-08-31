@@ -80,3 +80,26 @@ Once the repo is configured and the key is installed, you can switch to managing
 
 sudo apt install gitta-archive-keyring
 ```
+
+## TUI (Text User Interface)
+
+Start the TUI:
+
+```
+gitta tui
+```
+
+If you don't have Textual installed, add the optional extra:
+
+```
+python -m pip install 'gitta[tui]'
+```
+
+Key bindings in TUI:
+- q: quit
+- r: refresh
+- s: switch to Status tab
+- g: switch to Graph tab
+- d: switch to Diff tab
+
+Planned panels: staging, commit dialog, stash, undo, and tag bump.

@@ -460,6 +460,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp2.add_argument("-m", "--message", default=None, help="Tagg-meddelande")
     sp2.set_defaults(func=cmd_tag)
 
+    sp = sub.add_parser("tui", help="Starta TUI-gränssnittet (kräver 'textual')")
+    sp.set_defaults(func=cmd_tui)
+
     return p
 
 
@@ -478,3 +481,16 @@ def main(argv=None) -> int:
         parser.print_help()
         return 2
     return int(func(args))
+
+
+def cmd_tui(_: argparse.Namespace) -> int:
+    try:
+        from .tui.app import run as run_tui
+    except Exception as e:
+        sys.stderr.write(
+            "TUI kräver paketet 'textual'. Installera t.ex. med:\n"
+            "  pip install 'textual>=0.47,<0.60'\n"
+            f"Detalj: {e}\n"
+        )
+        return 1
+    return run_tui()

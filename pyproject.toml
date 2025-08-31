@@ -23,6 +23,11 @@ Source = "https://github.com/GeGGe01/gitta"
 [project.scripts]
 gitta = "gitta.cli:main"
 
+[project.optional-dependencies]
+tui = [
+  "textual>=0.47,<0.60",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
