@@ -453,11 +453,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("target", nargs="?", default=None, help="Målref, default HEAD~1")
     sp.set_defaults(func=cmd_undo)
 
-    sp = sub.add_parser("tag", help="Versionering och taggning")
+    sp = sub.add_parser("tag", help="Versioning and tagging")
     sp_sub = sp.add_subparsers(dest="tcmd", required=True)
-    sp2 = sp_sub.add_parser("bump", help="Föreslå nästa semver utifrån commits")
-    sp2.add_argument("--apply", action="store_true", help="Skapa taggen")
-    sp2.add_argument("-m", "--message", default=None, help="Tagg-meddelande")
+    sp2 = sp_sub.add_parser("bump", help="Suggest next semver from commits")
+    sp2.add_argument("--apply", action="store_true", help="Create the tag")
+    sp2.add_argument("-m", "--message", default=None, help="Tag message")
     sp2.set_defaults(func=cmd_tag)
 
     sp = sub.add_parser("tui", help="Starta TUI-gränssnittet (kräver 'textual')")
