@@ -412,7 +412,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("status", help="Show status with colored sections")
     sp.set_defaults(func=cmd_status)
 
-    sp = sub.add_parser("graph", help="Visa branch-graf")
+    sp = sub.add_parser("graph", help="Show branch graph")
     sp.set_defaults(func=cmd_graph)
 
     sp = sub.add_parser("stage", help="Interaktiv staging")
