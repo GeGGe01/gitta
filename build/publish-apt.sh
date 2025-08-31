@@ -35,7 +35,7 @@ done
 # Generate Packages files for each architecture
 for arch in ${ARCHES//,/ }; do
     echo "[publish-apt] Generating Packages for $arch"
-    apt-ftparchive packages "./pool/main" | grep -E "(^|^Package: .*)(amd64|all)" > "dists/$DIST_NAME/main/binary-$arch/Packages"
+    apt-ftparchive -a "$arch" packages "./pool/main" > "dists/$DIST_NAME/main/binary-$arch/Packages"
     gzip -f "dists/$DIST_NAME/main/binary-$arch/Packages"
 done
 
