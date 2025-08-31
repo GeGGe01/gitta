@@ -427,8 +427,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--no-wrap", action="store_true", help="Inget auto-wrap i body (behåll radlängd)")
     sp.set_defaults(func=cmd_commit)
 
-    sp = sub.add_parser("diff", help="Visa diff")
-    sp.add_argument("path", nargs="?", default=None, help="Valfri sökväg")
+    sp = sub.add_parser("diff", help="Show diff")
+    sp.add_argument("path", nargs="?", default=None, help="Optional path")
     sp.set_defaults(func=cmd_diff)
 
     sp = sub.add_parser("stash", help="Stash tools")
