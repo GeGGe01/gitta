@@ -33,4 +33,6 @@ test-package: ## Smoke test .deb in Docker Ubuntu
 	bash scripts/smoke-test.sh $(DIST)/$(PROJECT)_$(VERSION)_$(ARCH).deb
 
 clean:
-	rm -rf build/ dist/ *.egg-info .pytest_cache .mypy_cache .ruff_cache
+	rm -rf dist/ *.egg-info .pytest_cache .mypy_cache .ruff_cache
+	rm -rf build/docker/
+	# Keep build/publish-apt.sh (it's tracked in git)
