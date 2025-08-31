@@ -445,12 +445,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp2.add_argument("index", type=int)
     sp2.set_defaults(func=cmd_stash)
 
-    sp = sub.add_parser("undo", help="Guidade resets")
+    sp = sub.add_parser("undo", help="Guided resets")
     g = sp.add_mutually_exclusive_group()
-    g.add_argument("--soft", action="store_true", help="Behåll index+arbetskatalog (soft)")
-    g.add_argument("--mixed", action="store_true", help="Behåll arbetskatalog, återställ index (mixed)")
-    g.add_argument("--hard", action="store_true", help="Återställ både index och arbetskatalog (hard)")
-    sp.add_argument("target", nargs="?", default=None, help="Målref, default HEAD~1")
+    g.add_argument("--soft", action="store_true", help="Keep index and working directory (soft)")
+    g.add_argument("--mixed", action="store_true", help="Keep working directory, reset index (mixed)")
+    g.add_argument("--hard", action="store_true", help="Reset both index and working directory (hard)")
+    sp.add_argument("target", nargs="?", default=None, help="Target ref, default HEAD~1")
     sp.set_defaults(func=cmd_undo)
 
     sp = sub.add_parser("tag", help="Versioning and tagging")
