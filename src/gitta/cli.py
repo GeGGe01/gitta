@@ -70,8 +70,9 @@ def make_body(bullets: list[str], skip_first: bool = True, width: int = BODY_WRA
     if not items:
         return ""
     joined = ' '.join(re.sub(r'\s+', ' ', it).strip() for it in items)
-    wrapped = textwrap.fill(joined, width=width)
-    return wrapped
+    if width is not None and width > 0:
+        return textwrap.fill(joined, width=width)
+    return joined
 
 
 def _has_bullets(text: str) -> bool:
@@ -120,7 +121,10 @@ def build_commit_message(src_text: str, subject_max: int = SUBJECT_MAX, body_wra
     if not paras:
         raise SystemExit("No content found in input.")
     subject = make_subject(paras[0], maxlen=subject_max)
-    wrapped_body_parts = [textwrap.fill(p, width=body_wrap) for p in paras[1:]]
+    if body_wrap is not None and body_wrap > 0:
+        wrapped_body_parts = [textwrap.fill(p, width=body_wrap) for p in paras[1:]]
+    else:
+        wrapped_body_parts = paras[1:]
     body = "\n\n".join(wrapped_body_parts).rstrip()
     return subject + ("\n\n" + body if body else "") + "\n"
 
@@ -273,7 +277,8 @@ def cmd_commit(ns: argparse.Namespace) -> int:
         msg = ns.message
     else:
         src = read_input(ns.input)
-        msg = build_commit_message(src, subject_max=ns.subject_max, body_wrap=ns.wrap)
+        body_width = 0 if getattr(ns, "no_wrap", False) else ns.wrap
+        msg = build_commit_message(src, subject_max=ns.subject_max, body_wrap=body_width)
     try:
         p = subprocess.run(["git", "commit", "-F", "-"], input=msg, text=True)
         return p.returncode
@@ -419,6 +424,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("-m", "--message", default=None, help="Använd given text som commit-subject/body (hoppa över editor)")
     sp.add_argument("--subject-max", type=int, default=SUBJECT_MAX, help="Max längd på subject")
     sp.add_argument("--wrap", type=int, default=BODY_WRAP, help="Bredd för body-wrap")
+    sp.add_argument("--no-wrap", action="store_true", help="Inget auto-wrap i body (behåll radlängd)")
     sp.set_defaults(func=cmd_commit)
 
     sp = sub.add_parser("diff", help="Visa diff")
