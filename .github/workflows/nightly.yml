@@ -25,7 +25,6 @@ jobs:
           python -m build
         - name: NFPM Packaging
           uses: nfpm/nfpm-action@v2
-        # add your configuration options here
         with:
           install-only: true
       - name: Import GPG and export public key
