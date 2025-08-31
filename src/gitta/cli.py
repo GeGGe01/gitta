@@ -431,7 +431,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("path", nargs="?", default=None, help="Valfri sökväg")
     sp.set_defaults(func=cmd_diff)
 
-    sp = sub.add_parser("stash", help="Stash-verktyg")
+    sp = sub.add_parser("stash", help="Stash tools")
     sp_sub = sp.add_subparsers(dest="action", required=True)
     sp2 = sp_sub.add_parser("list", help="Lista stashes")
     sp2.set_defaults(func=cmd_stash)
