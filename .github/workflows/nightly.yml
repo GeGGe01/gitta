@@ -64,7 +64,7 @@ jobs:
           SHA=$(git rev-parse --short=8 HEAD)
           VERSION="0.1.0-nightly.${DATE}+${SHA}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-      - name: Build deb via nfpm (nightly)
+      - name: Build deb via nfpm (nightly; amd64, arm64)
         env:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
@@ -72,7 +72,10 @@ jobs:
           echo "Using version: $VERSION"
           sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.yaml
           mkdir -p dist
-          nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_amd64.deb
+          for ARCH in amd64 arm64; do
+            sed -i -E "s/^arch: .*/arch: ${ARCH}/" nfpm.yaml
+            nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_${ARCH}.deb
+          done
       - name: Build archive-keyring deb (nightly)
         env:
           VERSION: ${{ steps.ver.outputs.version }}
@@ -122,7 +125,7 @@ jobs:
         working-directory: repo
         env:
           PACKAGE_NAME: gitta
-          ARCHES: amd64
+          ARCHES: amd64,arm64
           DEB_GLOB: "*.deb"
           DIST: nightly
         run: |
@@ -151,6 +154,31 @@ jobs:
             exit 1
           fi
           aws s3 sync . "s3://${R2_BUCKET}${PREFIX_PATH}" --endpoint-url "$ENDPOINT" --delete --only-show-errors
+      - name: Set Cache-Control on APT metadata (nightly)
+        working-directory: repo
+        env:
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_PREFIX: ${{ vars.R2_PREFIX }}
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+        run: |
+          set -e
+          PREFIX_PATH="${R2_PREFIX:+/${R2_PREFIX}}"
+          if [ -n "${R2_ENDPOINT:-}" ]; then
+            ENDPOINT="$R2_ENDPOINT"
+          elif [ -n "${R2_ACCOUNT_ID:-}" ]; then
+            ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          else
+            echo "Missing R2 endpoint configuration: set R2_ENDPOINT or R2_ACCOUNT_ID as GitHub variables." >&2
+            exit 1
+          fi
+          aws s3 cp "s3://${R2_BUCKET}${PREFIX_PATH}/dists" "s3://${R2_BUCKET}${PREFIX_PATH}/dists" \
+            --recursive --exclude "*" \
+            --include "*/InRelease" --include "*/Release" --include "*/Release.gpg" --include "*/Packages" \
+            --endpoint-url "$ENDPOINT" --metadata-directive REPLACE --cache-control "no-cache" --content-type "text/plain" --only-show-errors || true
+          aws s3 cp "s3://${R2_BUCKET}${PREFIX_PATH}/dists" "s3://${R2_BUCKET}${PREFIX_PATH}/dists" \
+            --recursive --exclude "*" --include "*/Packages.gz" \
+            --endpoint-url "$ENDPOINT" --metadata-directive REPLACE --cache-control "no-cache" --content-type "application/gzip" --only-show-errors || true
 
   smoke-test:
     name: Smoke test .deb in container

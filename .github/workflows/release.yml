@@ -55,7 +55,7 @@ jobs:
           echo "Using key: $KEY_FPR"
           mkdir -p build/gpg
           gpg --armor --export "$KEY_FPR" > build/gpg/pubkey.asc
-      - name: Build deb via nfpm
+      - name: Build deb via nfpm (amd64, arm64)
         env:
           VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
         run: |
@@ -64,7 +64,10 @@ jobs:
           echo "Using version: $VERSION"
           sed -i -E "s/^version: .*/version: ${VERSION}/" nfpm.yaml
           mkdir -p dist
-          nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_amd64.deb
+          for ARCH in amd64 arm64; do
+            sed -i -E "s/^arch: .*/arch: ${ARCH}/" nfpm.yaml
+            nfpm pkg --packager deb -f nfpm.yaml --target dist/gitta_${VERSION}_${ARCH}.deb
+          done
       - name: Build archive-keyring deb
         env:
           VERSION: ${{ github.ref_name && startsWith(github.ref_name, 'v') && github.ref_name != '' && format('{0}', github.ref_name) || '' }}
@@ -115,7 +118,7 @@ jobs:
         working-directory: repo
         env:
           PACKAGE_NAME: gitta
-          ARCHES: amd64
+          ARCHES: amd64,arm64
           DEB_GLOB: "*.deb"
         run: |
           bash ../build/publish-apt.sh
@@ -143,6 +146,33 @@ jobs:
             exit 1
           fi
           aws s3 sync . "s3://${R2_BUCKET}${PREFIX_PATH}" --endpoint-url "$ENDPOINT" --delete --only-show-errors
+      - name: Set Cache-Control on APT metadata
+        working-directory: repo
+        env:
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_PREFIX: ${{ vars.R2_PREFIX }}
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+        run: |
+          set -e
+          PREFIX_PATH="${R2_PREFIX:+/${R2_PREFIX}}"
+          if [ -n "${R2_ENDPOINT:-}" ]; then
+            ENDPOINT="$R2_ENDPOINT"
+          elif [ -n "${R2_ACCOUNT_ID:-}" ]; then
+            ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          else
+            echo "Missing R2 endpoint configuration: set R2_ENDPOINT or R2_ACCOUNT_ID as GitHub variables." >&2
+            exit 1
+          fi
+          # Set no-cache for text metadata
+          aws s3 cp "s3://${R2_BUCKET}${PREFIX_PATH}/dists" "s3://${R2_BUCKET}${PREFIX_PATH}/dists" \
+            --recursive --exclude "*" \
+            --include "*/InRelease" --include "*/Release" --include "*/Release.gpg" --include "*/Packages" \
+            --endpoint-url "$ENDPOINT" --metadata-directive REPLACE --cache-control "no-cache" --content-type "text/plain" --only-show-errors || true
+          # Set no-cache for compressed metadata
+          aws s3 cp "s3://${R2_BUCKET}${PREFIX_PATH}/dists" "s3://${R2_BUCKET}${PREFIX_PATH}/dists" \
+            --recursive --exclude "*" --include "*/Packages.gz" \
+            --endpoint-url "$ENDPOINT" --metadata-directive REPLACE --cache-control "no-cache" --content-type "application/gzip" --only-show-errors || true
 
   smoke-test:
     name: Smoke test .deb in container
