@@ -64,21 +64,21 @@ def make_subject(first: str, maxlen: int = SUBJECT_MAX) -> str:
     return cut + '...'
 
 
-def make_body(bullets: list[str], skip_first: bool = True) -> str:
+def make_body(bullets: list[str], skip_first: bool = True, width: int = BODY_WRAP) -> str:
     items = bullets[1:] if skip_first and len(bullets) > 1 else bullets
     if not items:
         return ""
     joined = ' '.join(re.sub(r'\s+', ' ', it).strip() for it in items)
-    wrapped = textwrap.fill(joined, width=BODY_WRAP)
+    wrapped = textwrap.fill(joined, width=width)
     return wrapped
 
 
-def build_commit_message(src_text: str) -> str:
+def build_commit_message(src_text: str, subject_max: int = SUBJECT_MAX, body_wrap: int = BODY_WRAP) -> str:
     bullets = extract_bullets(src_text)
     if not bullets:
         raise SystemExit("No content found in input.")
-    subject = make_subject(bullets[0])
-    body = make_body(bullets, skip_first=True)
+    subject = make_subject(bullets[0], maxlen=subject_max)
+    body = make_body(bullets, skip_first=True, width=body_wrap)
     if body:
         return subject + "\n\n" + body + "\n"
     return subject + "\n"
@@ -100,10 +100,6 @@ def main(argv=None) -> int:
     global SUBJECT_MAX, BODY_WRAP
     SUBJECT_MAX = args.subject_max
     BODY_WRAP = args.wrap
-
-    src = read_input(args.input)
-
-
 
     src = read_input(args.input)
     msg = build_commit_message(src, subject_max=args.subject_max, body_wrap=args.wrap)
