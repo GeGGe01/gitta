@@ -1,6 +1,7 @@
 # build artifacts
 dist/
 build/
+!build/publish-apt.sh
 bin/
 out/
 
