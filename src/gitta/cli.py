@@ -74,15 +74,55 @@ def make_body(bullets: list[str], skip_first: bool = True, width: int = BODY_WRA
     return wrapped
 
 
+def _has_bullets(text: str) -> bool:
+    for ln in text.splitlines():
+        if ln.lstrip().startswith("#"):
+            continue
+        if re.match(r"^\s*[-*]\s+", ln):
+            return True
+    return False
+
+
+def _normalize_paragraphs(text: str) -> list[str]:
+    # Convert arbitrary multi-line input into paragraphs: collapse soft line breaks within
+    # a paragraph to spaces, preserve blank-line paragraph breaks.
+    paras: list[str] = []
+    buf: list[str] = []
+    for raw in text.splitlines():
+        ln = raw.rstrip()
+        if not ln.strip() or ln.lstrip().startswith("#"):
+            if buf:
+                paras.append(re.sub(r"\s+", " ", " ".join(buf)).strip())
+                buf = []
+            continue
+        buf.append(ln.strip())
+    if buf:
+        paras.append(re.sub(r"\s+", " ", " ".join(buf)).strip())
+    return [p for p in paras if p]
+
+
 def build_commit_message(src_text: str, subject_max: int = SUBJECT_MAX, body_wrap: int = BODY_WRAP) -> str:
-    bullets = extract_bullets(src_text)
-    if not bullets:
+    text = src_text.strip()
+    if not text:
         raise SystemExit("No content found in input.")
-    subject = make_subject(bullets[0], maxlen=subject_max)
-    body = make_body(bullets, skip_first=True, width=body_wrap)
-    if body:
-        return subject + "\n\n" + body + "\n"
-    return subject + "\n"
+
+    if _has_bullets(text):
+        # Bullet mode (existing behaviour)
+        bullets = extract_bullets(text)
+        if not bullets:
+            raise SystemExit("No content found in input.")
+        subject = make_subject(bullets[0], maxlen=subject_max)
+        body = make_body(bullets, skip_first=True, width=body_wrap)
+        return subject + ("\n\n" + body if body else "") + "\n"
+
+    # Free-text mode: collapse soft breaks, keep paragraphs
+    paras = _normalize_paragraphs(text)
+    if not paras:
+        raise SystemExit("No content found in input.")
+    subject = make_subject(paras[0], maxlen=subject_max)
+    wrapped_body_parts = [textwrap.fill(p, width=body_wrap) for p in paras[1:]]
+    body = "\n\n".join(wrapped_body_parts).rstrip()
+    return subject + ("\n\n" + body if body else "") + "\n"
 
 
 # -------- Git helpers -------- #
